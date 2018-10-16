@@ -4,9 +4,9 @@ from random import randint
 from numpy import array
 NOTE_SPACE = 24		#two octaves of notes are valid here.
 
-def get_three_notes_and_is_chord():
+def get_three_notes_and_is_chord(all_major=False):
 	answer = [0] * NOTE_SPACE
-	if(randint(0, 1) == 0):		#make half major, half garbage
+	if(randint(0, 1) == 0 or all_major):		#make half major, half garbage
 		#then make numbers in a major chord
 		base = randint(0, 16)
 		answer[base] = 1
@@ -22,13 +22,14 @@ def get_three_notes_and_is_chord():
 	return array(answer), array(is_chord)
 	
 	
-def chord_data_set(size):
+def chord_data_set(size, all_major=False):
 	data = []
 	labels = []
 	for i in range(size):
-		chord, output = get_three_notes_and_is_chord()
+		chord, output = get_three_notes_and_is_chord(all_major)
 		data.append(chord)
 		labels.append(output)
 
 	return array(data), array(labels)
 		
+        
