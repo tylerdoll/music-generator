@@ -98,7 +98,7 @@ print ("program start ----------------------------------------------------------
 NOISE_SIZE = 128
 GAUSSIAN_STDDEV = 0.6
 
-HISTORY_LENGTH = 5
+HISTORY_LENGTH = 1
 #JOINING_LAYER_SIZE = HISTORY_LENGTH * NOTE_SPACE
 JOINING_LAYER_SIZE = NOTE_SPACE
 
@@ -107,11 +107,13 @@ history_input = keras.layers.Input((HISTORY_LENGTH * NOTE_SPACE,))
 # Used to combine the random noise vector and the history to generate from
 g = keras.layers.concatenate([history_input, generator_noise_input])
 
-g = keras.layers.Dense(NOTE_SPACE)(g)
+g = keras.layers.Dense(HISTORY_LENGTH * NOTE_SPACE)(g)
+g = keras.layers.Dropout(0.3)(g)
 g = keras.layers.LeakyReLU(alpha=0.2)(g)
 
 #g = keras.layers.GaussianNoise(GAUSSIAN_STDDEV)(g)
-g = keras.layers.Dense(NOTE_SPACE)(g) # this matches up with the input layer of the discriminator
+g = keras.layers.Dense(HISTORY_LENGTH * NOTE_SPACE)(g) # this matches up with the input layer of the discriminator
+g = keras.layers.Dropout(0.3)(g)
 g = keras.layers.LeakyReLU(alpha=0.2)(g)
 
 generator_output = keras.layers.Dense(JOINING_LAYER_SIZE, activation="sigmoid")(g)			#doing this to keep values in range (0, 1)
@@ -142,11 +144,11 @@ discriminator = keras.Model(inputs=[history_input, discriminator_next_time_perio
 generator = keras.Model(inputs=[history_input, generator_noise_input], outputs = generator_output)
 #generator = keras.Model(inputs=history_input, outputs = g)
 
-discriminator.compile(optimizer=keras.optimizers.Adam(), 
+discriminator.compile(optimizer=keras.optimizers.Adam(lr=0.01), 
 			  loss='sparse_categorical_crossentropy',
 			  metrics=['accuracy'])
 			  
-discriminator.trainable = False
+
 			
 
 #input_history = keras.Sequential()
@@ -167,13 +169,14 @@ discriminator.trainable = False
 #disc_translation = keras.layers.concatenate([history_input, generator])
 #disc = 
 combined_system = keras.Model(input=generator.input, output=discriminator([history_input, generator.output]))
+discriminator.trainable = False
 # combined_system = keras.Sequential()
 # combined_system.add(gen_input_merged)
 # combined_system.add(generator)
 
 # combined_system.add(disc_input_merged)
 # combined_system.add(discriminator)
-combined_system.compile(optimizer=tf.train.AdamOptimizer(), 
+combined_system.compile(optimizer=keras.optimizers.Adam(lr=0.01), 
 						loss='sparse_categorical_crossentropy',
 						metrics=['accuracy'])
 		
@@ -218,9 +221,9 @@ combined_system.compile(optimizer=tf.train.AdamOptimizer(),
 	
 #after making the discriminator, try to add in the generator
 
-BATCH_COUNT = 200
+BATCH_COUNT = 1000
 #DISCRIMINATOR_PRETRAINING_BATCHES = 5
-TRAINING_INPUT_SIZE = 12800
+TRAINING_INPUT_SIZE = 128
 TESTING_INPUT_SIZE = 1000
 
 
@@ -246,7 +249,14 @@ for batch in range(BATCH_COUNT):
 
 	#discriminator.fit(input_train, labels_train, epochs=1)
 	discriminator.fit([all_history, all_expected_generations], all_labels, epochs=1)
-	
+	# predictions = discriminator.predict([all_history, all_expected_generations])
+	# for i in range(25):
+		# print ("i = " + str(i) + " batch = " + str(batch))
+		# #print (input_test[i])
+		# print (all_history[i])
+		# print (all_expected_generations[i])
+		# print (predictions[i])
+
 	#evaluating discriminator accuracy:
 	
 	# loss, accuracy = discriminator.evaluate(all_inputs_test, all_labels_test)
@@ -261,6 +271,7 @@ for batch in range(BATCH_COUNT):
 	
 	desired_outputs_train = np.zeros([TRAINING_INPUT_SIZE, 1])
 	#desired_outputs_test = np.zeros([TESTING_INPUT_SIZE, 1])
+	
 	combined_system.fit([history, random_inputs_train], desired_outputs_train, epochs=1)
 	
 	#combined_system.train_on_batch(random_inputs, desired_outputs)
@@ -273,10 +284,13 @@ for batch in range(BATCH_COUNT):
 
 testing_random_inputs = np.random.uniform(-1.0, 1.0, size=[TRAINING_INPUT_SIZE, NOISE_SIZE])
 history_test, labels_test, expected_generation_test = chromatic_data_set(TRAINING_INPUT_SIZE, HISTORY_LENGTH, always_true=True)
+#loss, acc = generator.evaluate([history, testing_random_inputs])
 generated_patterns = generator.predict([history, testing_random_inputs])
+
+#loss, acc = discriminator.evaluate([history_test, generated_patterns])
 discriminated_patterns = discriminator.predict([history_test, generated_patterns])
 
-for i in range(10):
+for i in range(25):
 	print ("i = " + str(i))
 	#print (input_test[i])
 	print (history_test[i])
