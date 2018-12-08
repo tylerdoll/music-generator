@@ -104,6 +104,7 @@ JOINING_LAYER_SIZE = NOTE_SPACE
 
 generator_noise_input = keras.layers.Input((NOISE_SIZE,))
 history_input = keras.layers.Input((HISTORY_LENGTH * NOTE_SPACE,))
+disc_history_input = keras.layers.Input((HISTORY_LENGTH * NOTE_SPACE,))
 # Used to combine the random noise vector and the history to generate from
 g = keras.layers.concatenate([history_input, generator_noise_input])
 
@@ -125,22 +126,22 @@ generator_output = keras.layers.Dense(JOINING_LAYER_SIZE, activation="sigmoid")(
 
 #discriminator_history_input = keras.layers.Input((NOTE_SPACE * HISTORY_LENGTH,))
 
-discriminator_next_time_period_input = keras.layers.Input((NOTE_SPACE,))		   #this matches up with the output layer of the generator
+#discriminator_next_time_period_input = keras.layers.Input((NOTE_SPACE,))		   #this matches up with the output layer of the generator
 #x = LSTM(512)(discriminator_input)
 #x = LSTM(512)(x)
 
 # Inputs
-x = keras.layers.concatenate([history_input, discriminator_next_time_period_input])
+disc_input_layer = keras.layers.concatenate([disc_history_input, generator_output])
 # put gaussian noise here to make the discriminator worse if it is too good for the generator
 
 
-x = keras.layers.Dense(NOTE_SPACE * (HISTORY_LENGTH + 1))(x)
+x = keras.layers.Dense(NOTE_SPACE * (HISTORY_LENGTH + 1))(disc_input_layer)
 x = keras.layers.Dropout(0.3)(x)
 x = keras.layers.LeakyReLU(alpha=0.2)(x)
 x = keras.layers.Dense(2, activation=tf.nn.softmax)(x)
 
 
-discriminator = keras.Model(inputs=[history_input, discriminator_next_time_period_input], outputs=x)
+discriminator = keras.Model(inputs=disc_input_layer, outputs=x)
 generator = keras.Model(inputs=[history_input, generator_noise_input], outputs = generator_output)
 #generator = keras.Model(inputs=history_input, outputs = g)
 
@@ -148,7 +149,7 @@ discriminator.compile(optimizer=keras.optimizers.Adam(lr=0.01),
 			  loss='sparse_categorical_crossentropy',
 			  metrics=['accuracy'])
 			  
-
+discriminator.trainable = False
 			
 
 #input_history = keras.Sequential()
@@ -168,11 +169,26 @@ discriminator.compile(optimizer=keras.optimizers.Adam(lr=0.01),
 #merged_inputs = keras.layers.concatenate([history_input, generator_noise_input])
 #disc_translation = keras.layers.concatenate([history_input, generator])
 #disc = 
-combined_system = keras.Model(input=generator.input, output=discriminator([history_input, generator.output]))
-discriminator.trainable = False
+
+
+combined_system = keras.Model(input=[history_input, disc_history_input, generator_noise_input], output=discriminator([disc_history_input, generator.output]))
+
+
+#for l in discriminator.layers:
+#	l.trainable = False
+
+# seq_generator = keras.Sequential()
+# seq_generator.add(keras.layers.Concatenate([history_input, generator_noise_input]))
+# seq_generator.add(generator)
+
 # combined_system = keras.Sequential()
-# combined_system.add(gen_input_merged)
-# combined_system.add(generator)
+
+# combined_system.add(keras.layers.Concatenate([history_input, seq_generator]))
+# combined_system.add(discriminator)
+
+
+for l in combined_system.layers:
+	print (l)
 
 # combined_system.add(disc_input_merged)
 # combined_system.add(discriminator)
@@ -180,7 +196,8 @@ combined_system.compile(optimizer=keras.optimizers.Adam(lr=0.01),
 						loss='sparse_categorical_crossentropy',
 						metrics=['accuracy'])
 		
-
+#combined_system.build()
+combined_system.summary()
 
 ##########################################################################################################################
 #			Discriminator testing
@@ -271,8 +288,10 @@ for batch in range(BATCH_COUNT):
 	
 	desired_outputs_train = np.zeros([TRAINING_INPUT_SIZE, 1])
 	#desired_outputs_test = np.zeros([TESTING_INPUT_SIZE, 1])
-	
-	combined_system.fit([history, random_inputs_train], desired_outputs_train, epochs=1)
+	#all_inputs = []
+	#for i in range(len(history)):
+	#	all_inputs.append(numpy.concatenate([history[i], random_inputs_train[i]]))
+	combined_system.fit([history, history, random_inputs_train], desired_outputs_train, epochs=1)
 	
 	#combined_system.train_on_batch(random_inputs, desired_outputs)
 	#evaluating generator accuracy:

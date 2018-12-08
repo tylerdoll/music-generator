@@ -100,7 +100,7 @@ GAUSSIAN_STDDEV = 0.6
 
 HISTORY_LENGTH = 5
 #JOINING_LAYER_SIZE = HISTORY_LENGTH * NOTE_SPACE
-JOINING_LAYER_SIZE = NOTE_SPACE
+
 
 generator_noise_input = keras.layers.Input((NOISE_SIZE,))
 history_input = keras.layers.Input((HISTORY_LENGTH * NOTE_SPACE,))
@@ -114,7 +114,7 @@ g = keras.layers.LeakyReLU(alpha=0.2)(g)
 g = keras.layers.Dense(NOTE_SPACE)(g) # this matches up with the input layer of the discriminator
 g = keras.layers.LeakyReLU(alpha=0.2)(g)
 
-g = keras.layers.Dense(JOINING_LAYER_SIZE, activation="sigmoid")(g)			#doing this to keep values in range (0, 1)
+g = keras.layers.Dense(NOTE_SPACE, activation="sigmoid")(g)			#doing this to keep values in range (0, 1)
 
 generator_output = keras.layers.concatenate([history_input, g])
 #g = keras.layers.BatchNormalization(momentum=0.8)(g)
@@ -166,6 +166,7 @@ discriminator.trainable = False
 #merge_layer = keras.layers.concatenate()
 combined_system = keras.Sequential()
 #combined_system.add(keras.layers.concatenate())
+#combined_system.add(keras.layers.InputLayer((HISTORY_LENGTH + 1) * NOTE_SPACE,))
 combined_system.add(generator)
 combined_system.add(discriminator)
 combined_system.compile(optimizer=tf.train.AdamOptimizer(), 
