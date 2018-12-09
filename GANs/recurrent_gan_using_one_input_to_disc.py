@@ -14,7 +14,7 @@ import random
 from random import randint
 from numpy import array
 import numpy
-NOTE_SPACE = 6      # notes valid here.
+NOTE_SPACE = 60      # notes valid here.
 
 RANDOMIZATION_MAX = 0.0
 
@@ -95,10 +95,10 @@ from numpy import array
 
 print ("program start -----------------------------------------------------------------------------------------------")
 #generator
-NOISE_SIZE = 11
+NOISE_SIZE = 5
 GAUSSIAN_STDDEV = 0.6
 
-HISTORY_LENGTH = 1
+HISTORY_LENGTH = 5
 #JOINING_LAYER_SIZE = HISTORY_LENGTH * NOTE_SPACE
 
 
@@ -117,7 +117,7 @@ import keras.backend as K
 # print(K.eval(t3))
 
 def get_history(x):
-	return keras.backend.slice(x, (0, 0), (0, TOTAL_HISTORY_SIZE))
+	return keras.backend.slice(x, (0, 0), (-1, TOTAL_HISTORY_SIZE))
 	#return x[:TOTAL_HISTORY_SIZE]
 	#return tf.slice(x, [,0], [TOTAL_HISTORY_SIZE,], "custom_slice")
 	# print ("x shape = " + str(tf.shape(x)))
@@ -129,15 +129,15 @@ def get_history(x):
 #exit()
 #hist_placeholder = tf.placeholder(shape=(TOTAL_HISTORY_SIZE, ), dtype=tf.float64)
 print((TOTAL_HISTORY_SIZE + NOISE_SIZE,))
-print ("gen_input is of shpae: " + str(tf.shape(generator_input)))
+print ("gen_input is of shape: " + str(tf.shape(generator_input)))
 history_storage = keras.layers.Lambda(get_history, output_shape=(TOTAL_HISTORY_SIZE,))(generator_input)
 #print (K.eval(history_storage))
 
-g = keras.layers.Dense(NOTE_SPACE)(generator_input)
+g = keras.layers.Dense(TOTAL_HISTORY_SIZE)(generator_input)
 g = keras.layers.LeakyReLU(alpha=0.2)(g)
 
 #g = keras.layers.GaussianNoise(GAUSSIAN_STDDEV)(g)
-g = keras.layers.Dense(NOTE_SPACE)(g) # this matches up with the input layer of the discriminator
+g = keras.layers.Dense(TOTAL_HISTORY_SIZE)(g) # this matches up with the input layer of the discriminator
 g = keras.layers.LeakyReLU(alpha=0.2)(g)
 
 g = keras.layers.Dense(NOTE_SPACE, activation="sigmoid")(g)			#doing this to keep values in range (0, 1)
@@ -168,9 +168,9 @@ x = keras.layers.Dense(2, activation=tf.nn.softmax)(x)
 
 
 generator = keras.Model(inputs=generator_input, outputs = generator_output)
-print ("---------------------------------  Generator -----------------------------")
-for layer in generator.layers:
-    print(layer.get_output_at(0).get_shape().as_list())
+#print ("---------------------------------  Generator -----------------------------")
+#for layer in generator.layers:
+#    print(layer.get_output_at(0).get_shape().as_list())
 discriminator = keras.Model(inputs=discriminator_input, outputs=x)
 #generator = keras.Model(inputs=history_input, outputs = g)
 
@@ -185,7 +185,7 @@ discriminator = keras.Model(inputs=discriminator_input, outputs=x)
 							# loss='sparse_categorical_crossentropy',
 							# metrics=['accuracy'])
 
-discriminator.compile(optimizer=keras.optimizers.Adam(), 
+discriminator.compile(optimizer=keras.optimizers.Adam(lr=0.005), 
 			  loss='sparse_categorical_crossentropy',
 			  metrics=['accuracy'])
 			  
@@ -197,8 +197,8 @@ discriminator.trainable = False
 combined_system = keras.Sequential()
 #combined_system.add(keras.layers.concatenate())
 combined_system.add(generator)
-#combined_system.add(discriminator)
-combined_system.compile(optimizer=tf.train.AdamOptimizer(), 
+combined_system.add(discriminator)
+combined_system.compile(optimizer=keras.optimizers.Adam(lr=0.001), 
 						loss='sparse_categorical_crossentropy',
 						metrics=['accuracy'])
 		
@@ -245,9 +245,9 @@ combined_system.compile(optimizer=tf.train.AdamOptimizer(),
 	
 #after making the discriminator, try to add in the generator
 
-BATCH_COUNT = 400
+BATCH_COUNT = 70
 #DISCRIMINATOR_PRETRAINING_BATCHES = 5
-TRAINING_INPUT_SIZE = 256
+TRAINING_INPUT_SIZE = 1280
 TESTING_INPUT_SIZE = 1000
 
 
@@ -268,8 +268,8 @@ for batch in range(BATCH_COUNT):
 	generator_input = array(generator_input)
 	
 	generated_patterns_train = generator.predict(generator_input)
-	#generated_patterns_test = generator.predict(random_inputs_test)
-	continue
+	# generated_patterns_test = generator.predict(random_inputs_test)
+	# continue
 	all_inputs = np.concatenate((generated_patterns_train, input_train))
 	all_labels = np.concatenate((np.ones([TRAINING_INPUT_SIZE, 1]), np.zeros([TRAINING_INPUT_SIZE, 1])))
 	
@@ -293,7 +293,7 @@ for batch in range(BATCH_COUNT):
 	
 	desired_outputs_train = np.zeros([TRAINING_INPUT_SIZE, 1])
 	#desired_outputs_test = np.zeros([TESTING_INPUT_SIZE, 1])
-	combined_system.fit(random_inputs_train, desired_outputs_train, epochs=1)
+	combined_system.fit(generator_input, desired_outputs_train, epochs=1)
 	
 	#combined_system.train_on_batch(random_inputs, desired_outputs)
 	#evaluating generator accuracy:
@@ -303,8 +303,16 @@ for batch in range(BATCH_COUNT):
 	# print ("combined_system test loss: " + str(loss))
 	
 
-testing_random_inputs = np.random.uniform(-1.0, 1.0, size=[TRAINING_INPUT_SIZE, NOISE_SIZE])
-generated_patterns = generator.predict(testing_random_inputs)
+testing_random_inputs = np.random.uniform(-1.0, 1.0, size=[TESTING_INPUT_SIZE, NOISE_SIZE])
+input_test, labels_test = chromatic_data_set(TESTING_INPUT_SIZE, HISTORY_LENGTH, always_true=True)
+
+generator_input_test = []
+for i in range(TESTING_INPUT_SIZE):
+	generator_input_test.append(numpy.concatenate([input_test[i][:TOTAL_HISTORY_SIZE], testing_random_inputs[i]]))
+generator_input_test  = array(generator_input_test)
+
+
+generated_patterns = generator.predict(generator_input_test)
 discriminated_patterns = discriminator.predict(generated_patterns)
 
 for i in range(10):
