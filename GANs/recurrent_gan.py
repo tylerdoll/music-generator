@@ -95,7 +95,7 @@ from numpy import array
 
 print ("program start -----------------------------------------------------------------------------------------------")
 #generator
-NOISE_SIZE = 128
+NOISE_SIZE = 5
 GAUSSIAN_STDDEV = 0.6
 
 HISTORY_LENGTH = 1
@@ -107,12 +107,12 @@ history_input = keras.layers.Input((HISTORY_LENGTH * NOTE_SPACE,))
 # Used to combine the random noise vector and the history to generate from
 g = keras.layers.concatenate([history_input, generator_noise_input])
 
-g = keras.layers.Dense(HISTORY_LENGTH * NOTE_SPACE)(g)
+g = keras.layers.Dense(2 * HISTORY_LENGTH * NOTE_SPACE)(g)
 g = keras.layers.Dropout(0.3)(g)
 g = keras.layers.LeakyReLU(alpha=0.2)(g)
 
 #g = keras.layers.GaussianNoise(GAUSSIAN_STDDEV)(g)
-g = keras.layers.Dense(HISTORY_LENGTH * NOTE_SPACE)(g) # this matches up with the input layer of the discriminator
+g = keras.layers.Dense(2 * HISTORY_LENGTH * NOTE_SPACE)(g) # this matches up with the input layer of the discriminator
 g = keras.layers.Dropout(0.3)(g)
 g = keras.layers.LeakyReLU(alpha=0.2)(g)
 
@@ -168,8 +168,10 @@ discriminator.compile(optimizer=keras.optimizers.Adam(lr=0.01),
 #merged_inputs = keras.layers.concatenate([history_input, generator_noise_input])
 #disc_translation = keras.layers.concatenate([history_input, generator])
 #disc = 
-combined_system = keras.Model(input=generator.input, output=discriminator([history_input, generator.output]))
 discriminator.trainable = False
+
+combined_system = keras.Model(input=generator.input, output=discriminator([history_input, generator.output]))
+
 # combined_system = keras.Sequential()
 # combined_system.add(gen_input_merged)
 # combined_system.add(generator)
@@ -221,9 +223,9 @@ combined_system.compile(optimizer=keras.optimizers.Adam(lr=0.01),
 	
 #after making the discriminator, try to add in the generator
 
-BATCH_COUNT = 1000
+BATCH_COUNT = 4000
 #DISCRIMINATOR_PRETRAINING_BATCHES = 5
-TRAINING_INPUT_SIZE = 128
+TRAINING_INPUT_SIZE = 1280
 TESTING_INPUT_SIZE = 1000
 
 
@@ -298,3 +300,5 @@ for i in range(25):
 	print (discriminated_patterns[i])
 	#print (labels_test[i])
 	
+discriminator.summary()
+combined_system.summary()

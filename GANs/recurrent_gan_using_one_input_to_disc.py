@@ -14,7 +14,7 @@ import random
 from random import randint
 from numpy import array
 import numpy
-NOTE_SPACE = 5      #5 octaves of notes are valid here.
+NOTE_SPACE = 6      # notes valid here.
 
 RANDOMIZATION_MAX = 0.0
 
@@ -95,28 +95,55 @@ from numpy import array
 
 print ("program start -----------------------------------------------------------------------------------------------")
 #generator
-NOISE_SIZE = 128
+NOISE_SIZE = 11
 GAUSSIAN_STDDEV = 0.6
 
-HISTORY_LENGTH = 5
+HISTORY_LENGTH = 1
 #JOINING_LAYER_SIZE = HISTORY_LENGTH * NOTE_SPACE
-JOINING_LAYER_SIZE = NOTE_SPACE
 
-generator_noise_input = keras.layers.Input((NOISE_SIZE,))
-history_input = keras.layers.Input((HISTORY_LENGTH * NOTE_SPACE,))
+
+TOTAL_HISTORY_SIZE = HISTORY_LENGTH * NOTE_SPACE
+#generator_noise_input = keras.layers.Input((NOISE_SIZE,))
+#history_input = keras.layers.Input((HISTORY_LENGTH * NOTE_SPACE,))
+generator_input = keras.layers.Input((TOTAL_HISTORY_SIZE + NOISE_SIZE,))
 # Used to combine the random noise vector and the history to generate from
-g = keras.layers.concatenate([history_input, generator_noise_input])
+# g = keras.layers.concatenate([history_input, generator_noise_input])
 
-g = keras.layers.Dense(NOTE_SPACE)(g)
+import keras.backend as K
+# t = K.ones((15,))
+# t1 = t[:3]
+# t2 = t[1:]
+# t3 = K.concatenate([t1, t2])
+# print(K.eval(t3))
+
+def get_history(x):
+	return keras.backend.slice(x, (0, 0), (0, TOTAL_HISTORY_SIZE))
+	#return x[:TOTAL_HISTORY_SIZE]
+	#return tf.slice(x, [,0], [TOTAL_HISTORY_SIZE,], "custom_slice")
+	# print ("x shape = " + str(tf.shape(x)))
+	# split0, split1 = tf.split(x, [TOTAL_HISTORY_SIZE, NOISE_SIZE], 0)
+	# print ("shapes")
+	# print (tf.shape(split0))
+	# print (tf.shape(split1))
+	
+#exit()
+#hist_placeholder = tf.placeholder(shape=(TOTAL_HISTORY_SIZE, ), dtype=tf.float64)
+print((TOTAL_HISTORY_SIZE + NOISE_SIZE,))
+print ("gen_input is of shpae: " + str(tf.shape(generator_input)))
+history_storage = keras.layers.Lambda(get_history, output_shape=(TOTAL_HISTORY_SIZE,))(generator_input)
+#print (K.eval(history_storage))
+
+g = keras.layers.Dense(NOTE_SPACE)(generator_input)
 g = keras.layers.LeakyReLU(alpha=0.2)(g)
 
 #g = keras.layers.GaussianNoise(GAUSSIAN_STDDEV)(g)
 g = keras.layers.Dense(NOTE_SPACE)(g) # this matches up with the input layer of the discriminator
 g = keras.layers.LeakyReLU(alpha=0.2)(g)
 
-g = keras.layers.Dense(JOINING_LAYER_SIZE, activation="sigmoid")(g)			#doing this to keep values in range (0, 1)
+g = keras.layers.Dense(NOTE_SPACE, activation="sigmoid")(g)			#doing this to keep values in range (0, 1)
 
-generator_output = keras.layers.concatenate([history_input, g])
+generator_output = keras.layers.concatenate([history_storage, g])
+#print (K.eval(generator_output))
 #g = keras.layers.BatchNormalization(momentum=0.8)(g)
 #g = keras.layers.GaussianNoise(GAUSSIAN_STDDEV)(g)
 
@@ -140,8 +167,11 @@ x = keras.layers.LeakyReLU(alpha=0.2)(x)
 x = keras.layers.Dense(2, activation=tf.nn.softmax)(x)
 
 
+generator = keras.Model(inputs=generator_input, outputs = generator_output)
+print ("---------------------------------  Generator -----------------------------")
+for layer in generator.layers:
+    print(layer.get_output_at(0).get_shape().as_list())
 discriminator = keras.Model(inputs=discriminator_input, outputs=x)
-generator = keras.Model(inputs=[history_input, generator_noise_input], outputs = generator_output)
 #generator = keras.Model(inputs=history_input, outputs = g)
 
 # def set_discriminator_trainable(new_value):
@@ -167,7 +197,7 @@ discriminator.trainable = False
 combined_system = keras.Sequential()
 #combined_system.add(keras.layers.concatenate())
 combined_system.add(generator)
-combined_system.add(discriminator)
+#combined_system.add(discriminator)
 combined_system.compile(optimizer=tf.train.AdamOptimizer(), 
 						loss='sparse_categorical_crossentropy',
 						metrics=['accuracy'])
@@ -178,28 +208,30 @@ combined_system.compile(optimizer=tf.train.AdamOptimizer(),
 #			Discriminator testing
 ##########################################################################################################################
 
-TRAINING_INPUT_SIZE = 12800
-input_train, labels_train = chromatic_data_set(TRAINING_INPUT_SIZE, HISTORY_LENGTH)
-input_test, labels_test = chromatic_data_set(1000, HISTORY_LENGTH)
+#input_train, labels_train = chromatic_data_set(TRAINING_INPUT_SIZE, HISTORY_LENGTH, always_true=True)
+
+# TRAINING_INPUT_SIZE = 12800
+# input_train, labels_train = chromatic_data_set(TRAINING_INPUT_SIZE, HISTORY_LENGTH)
+# input_test, labels_test = chromatic_data_set(1000, HISTORY_LENGTH)
 
 
-discriminator.fit(input_train, labels_train, epochs=50)#50 seems like a good number, 20 for faster testing
+# discriminator.fit(input_train, labels_train, epochs=50)#50 seems like a good number, 20 for faster testing
 
-loss, accuracy = discriminator.evaluate(input_test, labels_test)
+# loss, accuracy = discriminator.evaluate(input_test, labels_test)
 
-print ("test accuracy: " + str(accuracy))
-print ("test loss: " + str(loss))
+# print ("test accuracy: " + str(accuracy))
+# print ("test loss: " + str(loss))
 
-predictions = discriminator.predict(input_test)
+# predictions = discriminator.predict(input_test)
 
-for i in range(10):
-	print ("i = " + str(i))
-	print (input_test[i])
-	#print (generated_test[i])
-	print (predictions[i])
-	print (labels_test[i])
+# for i in range(10):
+	# print ("i = " + str(i))
+	# print (input_test[i])
+	# #print (generated_test[i])
+	# print (predictions[i])
+	# print (labels_test[i])
 	
-exit()
+# exit()
 
 ##########################################################################################################################
 #			END Discriminator testing
@@ -215,7 +247,7 @@ exit()
 
 BATCH_COUNT = 400
 #DISCRIMINATOR_PRETRAINING_BATCHES = 5
-TRAINING_INPUT_SIZE = 128
+TRAINING_INPUT_SIZE = 256
 TESTING_INPUT_SIZE = 1000
 
 
@@ -224,14 +256,20 @@ for batch in range(BATCH_COUNT):
 
 	# Discriminator training
 	random_inputs_train = np.random.uniform(-1.0, 1.0, size=[TRAINING_INPUT_SIZE, NOISE_SIZE])
-	random_inputs_test = np.random.uniform(-1.0, 1.0, size=[TESTING_INPUT_SIZE, NOISE_SIZE])
-	
-	generated_patterns_train = generator.predict(random_inputs_train)
-	generated_patterns_test = generator.predict(random_inputs_test)
-	
+	#random_inputs_test = np.random.uniform(-1.0, 1.0, size=[TESTING_INPUT_SIZE, NOISE_SIZE])
+		
 	input_train, labels_train = chromatic_data_set(TRAINING_INPUT_SIZE, HISTORY_LENGTH, always_true=True)
 	#input_test, labels_test = chromatic_data_set(TESTING_INPUT_SIZE, HISTORY_LENGTH, always_true=True)
+
+	# make the generator input
+	generator_input = []
+	for i in range(TRAINING_INPUT_SIZE):
+		generator_input.append(numpy.concatenate([input_train[i][:TOTAL_HISTORY_SIZE], random_inputs_train[i]]))
+	generator_input = array(generator_input)
 	
+	generated_patterns_train = generator.predict(generator_input)
+	#generated_patterns_test = generator.predict(random_inputs_test)
+	continue
 	all_inputs = np.concatenate((generated_patterns_train, input_train))
 	all_labels = np.concatenate((np.ones([TRAINING_INPUT_SIZE, 1]), np.zeros([TRAINING_INPUT_SIZE, 1])))
 	
