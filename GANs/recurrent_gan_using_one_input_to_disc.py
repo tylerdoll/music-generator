@@ -185,7 +185,7 @@ discriminator = keras.Model(inputs=discriminator_input, outputs=x)
 							# loss='sparse_categorical_crossentropy',
 							# metrics=['accuracy'])
 
-discriminator.compile(optimizer=keras.optimizers.Adam(lr=0.005), 
+discriminator.compile(optimizer=keras.optimizers.Adam(lr=0.001), 
 			  loss='sparse_categorical_crossentropy',
 			  metrics=['accuracy'])
 			  
@@ -198,7 +198,7 @@ combined_system = keras.Sequential()
 #combined_system.add(keras.layers.concatenate())
 combined_system.add(generator)
 combined_system.add(discriminator)
-combined_system.compile(optimizer=keras.optimizers.Adam(lr=0.001), 
+combined_system.compile(optimizer=keras.optimizers.Adam(lr=0.0006), 
 						loss='sparse_categorical_crossentropy',
 						metrics=['accuracy'])
 		
@@ -207,15 +207,15 @@ combined_system.compile(optimizer=keras.optimizers.Adam(lr=0.001),
 ##########################################################################################################################
 #			Discriminator testing
 ##########################################################################################################################
+# TRAINING_INPUT_SIZE = 1200
 
-#input_train, labels_train = chromatic_data_set(TRAINING_INPUT_SIZE, HISTORY_LENGTH, always_true=True)
+# input_train, labels_train = chromatic_data_set(TRAINING_INPUT_SIZE, HISTORY_LENGTH, always_true=True)
 
-# TRAINING_INPUT_SIZE = 12800
 # input_train, labels_train = chromatic_data_set(TRAINING_INPUT_SIZE, HISTORY_LENGTH)
 # input_test, labels_test = chromatic_data_set(1000, HISTORY_LENGTH)
 
 
-# discriminator.fit(input_train, labels_train, epochs=50)#50 seems like a good number, 20 for faster testing
+# discriminator.fit(input_train, labels_train, epochs=1)#50 seems like a good number, 20 for faster testing
 
 # loss, accuracy = discriminator.evaluate(input_test, labels_test)
 
@@ -245,7 +245,7 @@ combined_system.compile(optimizer=keras.optimizers.Adam(lr=0.001),
 	
 #after making the discriminator, try to add in the generator
 
-BATCH_COUNT = 70
+BATCH_COUNT = 200
 #DISCRIMINATOR_PRETRAINING_BATCHES = 5
 TRAINING_INPUT_SIZE = 1280
 TESTING_INPUT_SIZE = 1000
