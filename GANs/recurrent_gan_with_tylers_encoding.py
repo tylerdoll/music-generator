@@ -14,7 +14,7 @@ import random
 from random import randint
 from numpy import array
 import numpy
-NOTE_SPACE = 60      # notes valid here.
+NOTE_SPACE = 1      # notes valid here.
 
 RANDOMIZATION_MAX = 0.0
 
@@ -95,7 +95,7 @@ from numpy import array
 
 print ("program start -----------------------------------------------------------------------------------------------")
 #generator
-NOISE_SIZE = 5
+NOISE_SIZE = 32
 GAUSSIAN_STDDEV = 0.6
 
 HISTORY_LENGTH = 5
@@ -109,22 +109,9 @@ generator_input = keras.layers.Input((TOTAL_HISTORY_SIZE + NOISE_SIZE,))
 # Used to combine the random noise vector and the history to generate from
 # g = keras.layers.concatenate([history_input, generator_noise_input])
 
-import keras.backend as K
-# t = K.ones((15,))
-# t1 = t[:3]
-# t2 = t[1:]
-# t3 = K.concatenate([t1, t2])
-# print(K.eval(t3))
 
 def get_history(x):
 	return keras.backend.slice(x, (0, 0), (-1, TOTAL_HISTORY_SIZE))
-	#return x[:TOTAL_HISTORY_SIZE]
-	#return tf.slice(x, [,0], [TOTAL_HISTORY_SIZE,], "custom_slice")
-	# print ("x shape = " + str(tf.shape(x)))
-	# split0, split1 = tf.split(x, [TOTAL_HISTORY_SIZE, NOISE_SIZE], 0)
-	# print ("shapes")
-	# print (tf.shape(split0))
-	# print (tf.shape(split1))
 	
 #exit()
 #hist_placeholder = tf.placeholder(shape=(TOTAL_HISTORY_SIZE, ), dtype=tf.float64)
