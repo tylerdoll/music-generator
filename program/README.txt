@@ -38,8 +38,11 @@ mostly balance out their learning, but don't quite make good music.  Everything 
 to run it and generate something is included here in the "GANs" subfolder.  You should
 be able to just open a terminal next to the code (gan_final.py) and run 
 "python gan_final.py"
-and it will work.  However, you may want to edit the NUM_EPOCHS costant first to change
+to use the network.  However, you may want to edit the NUM_EPOCHS costant first to change
 the amount of time it will take to train.  At the end of running, this code will produce
 a .mid file which windows should know how to play from the default media player.  
 
-Also included
+Also included in the GAN subfolder is an example of one of the networks we used early
+on while experimenting with and learnign mroe about GANs.  This other network doesn't
+do anything really impressive, but is a good example of our early experimentation
+with GANs.  You can run it with "python basic_chords_gan.py".
