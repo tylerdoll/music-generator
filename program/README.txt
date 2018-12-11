@@ -4,27 +4,34 @@ Machine Learning group project
 Izaak Sulka, Tyler Doll and Jeff Greene
 
 Included in this submission are two models, a fairly successful recurrent predictor and a
-less successful GAN, along with the data you need to train them on. 
+less successful GAN, along with the data you need to train them on.
+
+Also includes a requirements.txt file for pip packages.
 
 
 ##############################################################################
-				Recurrent Predictor
+				Bidrectional LSTM RNN
 ##############################################################################
 
+Our RNN works pretty well at impersonating music.  There are two ways to interact with it.
+You can train a model or use an existing one to predict.
 
+Training:
+Call `python3 train.py --name <name of model to train> --songs_dir <directory containing midis>`
+Optional params include:
+    `--checkpoint <hdf5 file>` to resume training from a previous checkpoint.
+    `--notes <pickled notes file>` to use pre-parsed notes.
+    `--epochs <int>` to set the number of epochs to train for, defaults to 10
 
+Predicting/Generating:
+Call `python3 predict.py <name of model>` where model name is:
+    - ragtime
+    - rap
+    - christmas
+Or a custom trained model.
 
-
-
-
-
-
-
-
-
-
-
-
+Note that a hdf5 and notes file must exist with the same name to
+generate a song.
 
 
 ##############################################################################
