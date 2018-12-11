@@ -33,6 +33,9 @@ Or a custom trained model.
 Note that a hdf5 and notes file must exist with the same name to
 generate a song.
 
+Based on the tutorial found here:
+https://towardsdatascience.com/how-to-generate-music-using-a-lstm-neural-network-in-keras-68786834d4c5
+
 
 ##############################################################################
 				Generative Adversarial Network
