@@ -30,7 +30,7 @@ Call `python3 predict.py <name of model>` where model name is:
     - christmas
 Or a custom trained model.
 
-Note that a hdf5 and notes file must exist with the same name to
+Note that a hdf5 and notes file must exist in their respective places with the same name to
 generate a song.
 
 Based on the tutorial found here:
